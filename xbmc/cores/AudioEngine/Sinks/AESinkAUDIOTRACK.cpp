@@ -511,7 +511,11 @@ bool CAESinkAUDIOTRACK::Initialize(AEAudioFormat &format, std::string &device)
       // make sure periods are actually not smaller than 32 ms (32, cause 32 * 2 = 64)
       // but also not bigger than 64 ms
       // which is large enough to not cause CPU hogging in case 32 ms periods are used
-      m_min_buffer_size *= 2;
+
+      // reduce buffer to 16ms for TrueHD to avoid dropouts
+      m_min_buffer_size *= (m_passthrough && m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)
+              ? 1
+              : 2;
       m_audiotrackbuffer_sec =
           static_cast<double>(m_min_buffer_size) / (m_sink_frameSize * m_sink_sampleRate);
 
@@ -519,7 +523,7 @@ bool CAESinkAUDIOTRACK::Initialize(AEAudioFormat &format, std::string &device)
       // this fixes dropouts since the data arrives in smaller quantities but more constantly
       const double target_duration =
           (m_passthrough && m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)
-              ? 0.08
+              ? 0.02
               : 0.15;
       int c = 2;
       while (m_audiotrackbuffer_sec < target_duration)
@@ -533,12 +537,23 @@ bool CAESinkAUDIOTRACK::Initialize(AEAudioFormat &format, std::string &device)
       double period_time =
           static_cast<double>(period_size) / (m_sink_frameSize * m_sink_sampleRate);
 
-      while (period_time > 0.064)
+      const double max_period_time =
+          (m_passthrough && m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)
+              ? 0.032
+              : 0.064;
+
+      while (period_time > max_period_time)
       {
         period_time /= 2;
         period_size /= 2;
       }
-      while (period_time < 0.032)
+
+      const double min_period_time =
+          (m_passthrough && m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)
+              ? 0.016
+              : 0.032;
+
+      while (period_time < min_period_time)
       {
         period_size *= 2;
         period_time *= 2;

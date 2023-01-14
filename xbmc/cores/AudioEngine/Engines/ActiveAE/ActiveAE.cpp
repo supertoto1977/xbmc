@@ -68,12 +68,14 @@ void CEngineStats::AddSamples(int samples, const std::list<CActiveAEStream*>& st
 
 void CEngineStats::GetDelay(AEDelayStatus& status)
 {
+  bool isPassthough_trueHD_iec = (m_sinkFormat.m_dataFormat != AE_FMT_RAW && m_sinkFormat.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
+
   std::unique_lock<CCriticalSection> lock(m_lock);
   status = m_sinkDelay;
   if (m_pcmOutput)
     status.delay += (double)m_bufferedSamples / m_sinkSampleRate;
   else
-    status.delay += (double)m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration() / 1000;
+    status.delay += (double)m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration(isPassthough_trueHD_iec) / 1000;
 }
 
 void CEngineStats::AddStream(unsigned int streamid)
@@ -101,6 +103,8 @@ void CEngineStats::RemoveStream(unsigned int streamid)
 
 void CEngineStats::UpdateStream(CActiveAEStream *stream)
 {
+  bool isPassthough_trueHD_iec = (m_sinkFormat.m_dataFormat != AE_FMT_RAW && m_sinkFormat.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
+
   std::unique_lock<CCriticalSection> lock(m_lock);
   for (auto &str : m_streamStats)
   {
@@ -126,7 +130,7 @@ void CEngineStats::UpdateStream(CActiveAEStream *stream)
         if (m_pcmOutput)
           delay += (float)(*itBuf)->pkt->nb_samples / (*itBuf)->pkt->config.sample_rate;
         else
-          delay += static_cast<float>(m_sinkFormat.m_streamInfo.GetDuration() / 1000.0);
+          delay += static_cast<float>(m_sinkFormat.m_streamInfo.GetDuration(isPassthough_trueHD_iec) / 1000.0);
       }
       str.m_bufferedTime = static_cast<double>(delay);
       stream->m_bufferedTime = 0;
@@ -138,13 +142,15 @@ void CEngineStats::UpdateStream(CActiveAEStream *stream)
 // this is used to sync a/v so we need to add sink latency here
 void CEngineStats::GetDelay(AEDelayStatus& status, CActiveAEStream *stream)
 {
+  bool isPassthough_trueHD_iec = (m_sinkFormat.m_dataFormat != AE_FMT_RAW && m_sinkFormat.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
+
   std::unique_lock<CCriticalSection> lock(m_lock);
   status = m_sinkDelay;
   status.delay += static_cast<double>(m_sinkLatency);
   if (m_pcmOutput)
     status.delay += (double)m_bufferedSamples / m_sinkSampleRate;
   else
-    status.delay += (double)m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration() / 1000;
+    status.delay += (double)m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration(isPassthough_trueHD_iec) / 1000;
 
   for (auto &str : m_streamStats)
   {
@@ -161,13 +167,15 @@ void CEngineStats::GetDelay(AEDelayStatus& status, CActiveAEStream *stream)
 // this is used to sync a/v so we need to add sink latency here
 void CEngineStats::GetSyncInfo(CAESyncInfo& info, CActiveAEStream *stream)
 {
+  bool isPassthough_trueHD_iec = (m_sinkFormat.m_dataFormat != AE_FMT_RAW && m_sinkFormat.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
+
   std::unique_lock<CCriticalSection> lock(m_lock);
   AEDelayStatus status;
   status = m_sinkDelay;
   if (m_pcmOutput)
     status.delay += (double)m_bufferedSamples / m_sinkSampleRate;
   else
-    status.delay += (double)m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration() / 1000;
+    status.delay += (double)m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration(isPassthough_trueHD_iec) / 1000;
 
   status.delay += static_cast<double>(m_sinkLatency);
 
@@ -219,11 +227,13 @@ float CEngineStats::GetMaxDelay() const
 
 float CEngineStats::GetWaterLevel()
 {
+  bool isPassthough_trueHD_iec = (m_sinkFormat.m_dataFormat != AE_FMT_RAW && m_sinkFormat.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
+
   std::unique_lock<CCriticalSection> lock(m_lock);
   if (m_pcmOutput)
     return static_cast<float>(m_bufferedSamples) / m_sinkSampleRate;
   else
-    return static_cast<float>(m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration()) / 1000;
+    return static_cast<float>(m_bufferedSamples * m_sinkFormat.m_streamInfo.GetDuration(isPassthough_trueHD_iec)) / 1000;
 }
 
 void CEngineStats::SetSuspended(bool state)
