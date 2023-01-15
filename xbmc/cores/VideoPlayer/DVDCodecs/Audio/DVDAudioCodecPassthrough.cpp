@@ -220,7 +220,8 @@ void CDVDAudioCodecPassthrough::GetData(DVDAudioFrame &frame)
   if (frame.nb_frames == 0)
     return;
 
-  bool isPassthrough_trueHD_iec = (!m_deviceIsRAW && m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
+  const bool isPassthrough_trueHD_iec =
+        (!m_deviceIsRAW && m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD);
 
   frame.passthrough = true;
   frame.format = m_format;
